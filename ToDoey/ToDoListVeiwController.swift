@@ -10,15 +10,30 @@ import UIKit
 
 class ToDoListVeiwController: UITableViewController {
     
-    var itemArray = ["Find Mike", "Buy Eggs", "Destroy Demogorgon"]
+
     
-    //создаем UserDefaults для сохранения данных
+    var itemArray = [Item]()
+    
+    //создаем UserDefaults для сохранения данных. UserDefaults используется для сохранения необольшого объема данных. При использовании как базу данных может повлиять на работоспособность и скорость приложения. UserDefaults - singleton Object
     let defaults = UserDefaults.standard
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        //загружаем массив из UserDefaults
-        if let items = defaults.array(forKey: "TodoListArray") as? [String] {
+        
+        let newItem = Item()
+        newItem.title = "Find Mike"
+        itemArray.append(newItem)
+        
+        let newItem2 = Item()
+        newItem2.title = "Buy Eggs"
+        itemArray.append(newItem2)
+        
+        let newItem3 = Item()
+        newItem3.title = "Save The World"
+        itemArray.append(newItem3)
+        
+//        //загружаем массив из UserDefaults
+        if let items = defaults.array(forKey: "TodoListArray") as? [Item] {
             itemArray = items
         }
     }
@@ -30,8 +45,26 @@ class ToDoListVeiwController: UITableViewController {
     }
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        
+        
+        
         let cell = tableView.dequeueReusableCell(withIdentifier: "ToDoItemCell", for: indexPath)
-        cell.textLabel?.text = itemArray[indexPath.row]
+        
+        let item = itemArray[indexPath.row]
+        
+        cell.textLabel?.text = item.title
+        
+        //Ternary operator ==>
+        // value = condition ? valueifTrue : valueIfFalse
+         //добавляем и убираем галочку при нажатии
+        cell.accessoryType = item.done ? .checkmark : .none
+        /*
+        if item.done == true {
+            cell.accessoryType = .checkmark
+        } else {
+            cell.accessoryType = .none
+        }
+        */
         return cell
     }
     
@@ -39,19 +72,16 @@ class ToDoListVeiwController: UITableViewController {
     
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         
-        print(itemArray[indexPath.row])
+
         
         //убирает выделение ячейки при выборе
         tableView.deselectRow(at: indexPath, animated: true)
         
-        //добавляем и убираем галочку при нажатии
-        if let cell = tableView.cellForRow(at: indexPath) {
-            if cell.accessoryType == .none {
-                cell.accessoryType = .checkmark
-            } else {
-                cell.accessoryType = .none
-            }
-        }
+        //  меняем свойство done для установки галочки
+        
+        itemArray[indexPath.row].done = !itemArray[indexPath.row].done
+        
+        tableView.reloadData()
     }
     
     //MARK - Add New Items
@@ -64,10 +94,15 @@ class ToDoListVeiwController: UITableViewController {
         //создаем действие для UIALertController
         let action = UIAlertAction(title: "Add Item", style: .default) { (action) in
             //Что будет если юзер нажмет на кнопку
-            self.itemArray.append(textField.text!)
+            
+            let newItem = Item()
+            newItem.title = textField.text!
+            self.itemArray.append(newItem)
             
             //сохраняем массив в userdefaults
             self.defaults.set(self.itemArray, forKey: "TodoListArray")
+            
+           
             
             self.tableView.reloadData()
         }
