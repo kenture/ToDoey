@@ -8,7 +8,8 @@
 
 import UIKit
 
-class Item {
+//подписаться под  Encodable + Decodable или Codable для возможности сохранения и загрузки
+class Item: Codable {
     var title : String = ""
     var done :Bool = false
 }

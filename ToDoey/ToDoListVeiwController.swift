@@ -13,29 +13,27 @@ class ToDoListVeiwController: UITableViewController {
 
     
     var itemArray = [Item]()
+    //создаем путь для сохранения файлов
+    let datafilePath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent("Items.plist")
     
     //создаем UserDefaults для сохранения данных. UserDefaults используется для сохранения необольшого объема данных. При использовании как базу данных может повлиять на работоспособность и скорость приложения. UserDefaults - singleton Object
-    let defaults = UserDefaults.standard
+    //let defaults = UserDefaults.standard
     
     override func viewDidLoad() {
         super.viewDidLoad()
+    
+       
         
-        let newItem = Item()
-        newItem.title = "Find Mike"
-        itemArray.append(newItem)
+       // print(datafilePath)
         
-        let newItem2 = Item()
-        newItem2.title = "Buy Eggs"
-        itemArray.append(newItem2)
         
-        let newItem3 = Item()
-        newItem3.title = "Save The World"
-        itemArray.append(newItem3)
         
 //        //загружаем массив из UserDefaults
-        if let items = defaults.array(forKey: "TodoListArray") as? [Item] {
-            itemArray = items
-        }
+//        if let items = defaults.array(forKey: "TodoListArray") as? [Item] {
+//            itemArray = items
+//        }
+        
+        loadItems()
     }
     
     //MARK - TableView DataSource Methods
@@ -81,6 +79,8 @@ class ToDoListVeiwController: UITableViewController {
         
         itemArray[indexPath.row].done = !itemArray[indexPath.row].done
         
+        saveItems()
+        
         tableView.reloadData()
     }
     
@@ -100,11 +100,10 @@ class ToDoListVeiwController: UITableViewController {
             self.itemArray.append(newItem)
             
             //сохраняем массив в userdefaults
-            self.defaults.set(self.itemArray, forKey: "TodoListArray")
+            //self.defaults.set(self.itemArray, forKey: "TodoListArray")
             
-           
-            
-            self.tableView.reloadData()
+            self.saveItems()
+          
         }
         
         alert.addTextField { (alertTextField) in
@@ -115,6 +114,30 @@ class ToDoListVeiwController: UITableViewController {
         alert.addAction(action)
         
         present(alert, animated: true, completion: nil)
+    }
+    
+    func saveItems() {
+        let encoder = PropertyListEncoder()
+        do {
+            let data = try encoder.encode(self.itemArray)
+            //сохраняем инфу по нашему пути
+            try data.write(to: self.datafilePath!)
+        } catch {
+            print("error encoding item array, \(error)")
+        }
+          self.tableView.reloadData()
+    }
+    
+    //функция для загрузки plist
+    func loadItems() {
+       if let data = try? Data(contentsOf: datafilePath!) {
+            let decoder = PropertyListDecoder()
+        do {
+        itemArray = try decoder.decode([Item].self, from: data)
+        } catch {
+            print("Error decoding \(error)")
+        }
+    }
     }
     
 }
