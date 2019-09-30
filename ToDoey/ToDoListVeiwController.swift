@@ -7,14 +7,15 @@
 //
 
 import UIKit
+import CoreData
 
-class ToDoListVeiwController: UITableViewController {
+class ToDoListVeiwController: UITableViewController{
     
-
+     let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
     
     var itemArray = [Item]()
     //создаем путь для сохранения файлов
-    let datafilePath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent("Items.plist")
+    //let datafilePath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent("Items.plist")
     
     //создаем UserDefaults для сохранения данных. UserDefaults используется для сохранения необольшого объема данных. При использовании как базу данных может повлиять на работоспособность и скорость приложения. UserDefaults - singleton Object
     //let defaults = UserDefaults.standard
@@ -22,7 +23,7 @@ class ToDoListVeiwController: UITableViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
     
-       
+      
         
        // print(datafilePath)
         
@@ -33,7 +34,7 @@ class ToDoListVeiwController: UITableViewController {
 //            itemArray = items
 //        }
         
-        loadItems()
+       loadItems()
     }
     
     //MARK - TableView DataSource Methods
@@ -76,8 +77,11 @@ class ToDoListVeiwController: UITableViewController {
         tableView.deselectRow(at: indexPath, animated: true)
         
         //  меняем свойство done для установки галочки
-        
         itemArray[indexPath.row].done = !itemArray[indexPath.row].done
+        
+        //удаляем по тапу
+        //context.delete(itemArray[indexPath.row])
+        //itemArray.remove(at: indexPath.row)
         
         saveItems()
         
@@ -95,8 +99,10 @@ class ToDoListVeiwController: UITableViewController {
         let action = UIAlertAction(title: "Add Item", style: .default) { (action) in
             //Что будет если юзер нажмет на кнопку
             
-            let newItem = Item()
+            
+            let newItem = Item(context: self.context)
             newItem.title = textField.text!
+            newItem.done = false
             self.itemArray.append(newItem)
             
             //сохраняем массив в userdefaults
@@ -117,29 +123,57 @@ class ToDoListVeiwController: UITableViewController {
     }
     
     func saveItems() {
-        let encoder = PropertyListEncoder()
+        
         do {
-            let data = try encoder.encode(self.itemArray)
-            //сохраняем инфу по нашему пути
-            try data.write(to: self.datafilePath!)
+            try context.save()
         } catch {
-            print("error encoding item array, \(error)")
+           print("Error saving context \(error)")
         }
           self.tableView.reloadData()
     }
     
-    //функция для загрузки plist
-    func loadItems() {
-       if let data = try? Data(contentsOf: datafilePath!) {
-            let decoder = PropertyListDecoder()
+//    //функция для загрузки plist
+    func loadItems(with request: NSFetchRequest<Item> = Item.fetchRequest()) {
+     
         do {
-        itemArray = try decoder.decode([Item].self, from: data)
+          itemArray = try context.fetch(request)
         } catch {
-            print("Error decoding \(error)")
+            print("error fetching data from context \(error)")
         }
+        tableView.reloadData()
     }
-    }
+
     
 }
 
+extension ToDoListVeiwController: UISearchBarDelegate {
+    
+    //метод для поиска
+    func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+        let request : NSFetchRequest<Item> = Item.fetchRequest()
+        
+        let predicate = NSPredicate(format: "title CONTAINS[cd] %@", searchBar.text!)
+        
+        request.predicate = predicate
+        
+        let sortDescriptor = NSSortDescriptor(key: "title", ascending: true)
+        request.sortDescriptors = [sortDescriptor]
+        
+        loadItems(with: request)
+        
 
+    }
+       //загрузка всего контента когда в сечбаре нету символов
+    func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
+        if searchBar.text?.count == 0 {
+            loadItems()
+            
+            //снимает курсор из сечбара
+            DispatchQueue.main.async {
+                 searchBar.resignFirstResponder()
+            }
+           
+        }
+    }
+    
+}
